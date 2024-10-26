@@ -2,6 +2,10 @@
 
 This repository contains a chat application built with a microservices architecture. The application consists of several submodules, including a chat server, a chat client, a presence service, and performance testing configurations using Artillery.
 
+The objective was to build a chat application capable of managing substantial concurrent user connections, supporting rapid message broadcasts, user presence status, and resilient WebSocket connections under a variety of network conditions.
+
+The chat system aims to handle massive WebSocket connections, simulating up to 100,000 concurrent users.
+
 ## Table of Contents
 - [Features](#features)
 - [Architecture](#architecture)
