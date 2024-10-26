@@ -1,0 +1,354 @@
+version: '3'
+
+services:
+  mongo-chats:
+    container_name: mongo-chats
+    image: mongo:5
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - chats
+
+  redis-1:
+    image: redis:alpine
+    container_name: redis-1
+    command: ["redis-server","/etc/redis/redis.conf"]
+    ports:
+      - "6380:6379"
+      - "16380:16379"  # Port for cluster communication
+    volumes:
+      - ./chats-server/redis/node-1/data:/data
+      - ./chats-server/redis/node-1/conf/redis.conf:/etc/redis/redis.conf
+    networks:
+      - chats
+
+  redis-2:
+    image: redis:alpine
+    container_name: redis-2
+    command: ["redis-server", "/etc/redis/redis.conf"]
+    ports:
+      - "6381:6379"
+      - "16381:16379"
+    volumes:
+      - ./chats-server/redis/node-2/data:/data
+      - ./chats-server/redis/node-2/conf/redis.conf:/etc/redis/redis.conf
+    networks:
+      - chats
+
+  redis-3:
+    image: redis:alpine
+    container_name: redis-3
+    command: ["redis-server", "/etc/redis/redis.conf"]
+    ports:
+      - "6382:6379"
+      - "16382:16379"
+    volumes:
+      - ./chats-server/redis/node-3/data:/data
+      - ./chats-server/redis/node-3/conf/redis.conf:/etc/redis/redis.conf
+    networks:
+      - chats
+  
+  redis-4:
+    image: redis:alpine
+    container_name: redis-4
+    command: ["redis-server", "/etc/redis/redis.conf"]
+    ports:
+      - "6383:6379"
+      - "16383:16379"
+    volumes:
+      - ./chats-server/redis/node-4/data:/data
+      - ./chats-server/redis/node-4/conf/redis.conf:/etc/redis/redis.conf
+    networks:
+      - chats
+
+  redis-5:
+    image: redis:alpine
+    container_name: redis-5
+    command: ["redis-server", "/etc/redis/redis.conf"]
+    ports:
+      - "6384:6379"
+      - "16384:16379"
+    volumes:
+      - ./chats-server/redis/node-5/data:/data
+      - ./chats-server/redis/node-5/conf/redis.conf:/etc/redis/redis.conf
+    networks:
+      - chats
+
+  redis-6:
+    image: redis:alpine
+    container_name: redis-6
+    command: ["redis-server", "/etc/redis/redis.conf"]
+    ports:
+      - "6385:6379"
+      - "16385:16379"
+    volumes:
+      - ./chats-server/redis/node-6/data:/data
+      - ./chats-server/redis/node-6/conf/redis.conf:/etc/redis/redis.conf
+    networks:
+      - chats
+  
+  chat-api-1:
+    build:
+      context: ./chats-server
+      dockerfile: Dockerfile
+    container_name: chat-api-1
+    ports:
+      - "4000:4040"
+      - "4041:4041"
+    volumes:
+      - ./chats-server:/app/chats-server
+    environment:
+      - PORT=4040
+    depends_on:
+      - mongo-chats
+      - redis-1
+      - redis-2
+      - redis-3
+      - redis-4
+      - redis-5
+      - redis-6
+      - presence-service
+    networks:
+      - chats
+  
+  chat-api-2:
+    build:
+      context: ./chats-server
+      dockerfile: Dockerfile
+    container_name: chat-api-2
+    ports:
+      - "4002:4040"
+    volumes:
+      - ./chats-server:/app/chats-server
+    environment:
+      - PORT=4040
+    depends_on:
+      - mongo-chats
+      - redis-1
+      - redis-2
+      - redis-3
+      - redis-4
+      - redis-5
+      - redis-6
+      - presence-service
+    networks:
+      - chats
+  
+  chat-api-3:
+    build:
+      context: ./chats-server
+      dockerfile: Dockerfile
+    container_name: chat-api-3
+    ports:
+      - "4003:4040"
+    volumes:
+      - ./chats-server:/app/chats-server
+    environment:
+      - PORT=4040
+    depends_on:
+      - mongo-chats
+      - redis-1
+      - redis-2
+      - redis-3
+      - redis-4
+      - redis-5
+      - redis-6
+      - presence-service
+    networks:
+      - chats
+  
+  chat-api-4:
+    build:
+      context: ./chats-server
+      dockerfile: Dockerfile
+    container_name: chat-api-4
+    ports:
+      - "4004:4040"
+    volumes:
+      - ./chats-server:/app/chats-server
+    environment:
+      - PORT=4040
+    depends_on:
+      - mongo-chats
+      - redis-1
+      - redis-2
+      - redis-3
+      - redis-4
+      - redis-5
+      - redis-6
+      - presence-service
+    networks:
+      - chats
+
+  chat-api-5:
+    build:
+      context: ./chats-server
+      dockerfile: Dockerfile
+    container_name: chat-api-5
+    ports:
+      - "4005:4040"
+    volumes:
+      - ./chats-server:/app/chats-server
+    environment:
+      - PORT=4040
+    depends_on:
+      - mongo-chats
+      - redis-1
+      - redis-2
+      - redis-3
+      - redis-4
+      - redis-5
+      - redis-6
+      - presence-service
+    networks:
+      - chats
+
+  chat-api-6:
+    build:
+      context: ./chats-server
+      dockerfile: Dockerfile
+    container_name: chat-api-6
+    ports:
+      - "4006:4040"
+    volumes:
+      - ./chats-server:/app/chats-server
+    environment:
+      - PORT=4040
+    depends_on:
+      - mongo-chats
+      - redis-1
+      - redis-2
+      - redis-3
+      - redis-4
+      - redis-5
+      - redis-6
+      - presence-service
+    networks:
+      - chats
+
+  chat-api-7:
+    build:
+      context: ./chats-server
+      dockerfile: Dockerfile
+    container_name: chat-api-7
+    ports:
+      - "4007:4040"
+    volumes:
+      - ./chats-server:/app/chats-server
+    environment:
+      - PORT=4040
+    depends_on:
+      - mongo-chats
+      - redis-1
+      - redis-2
+      - redis-3
+      - redis-4
+      - redis-5
+      - redis-6
+      - presence-service
+    networks:
+      - chats
+
+  chat-api-8:
+    build:
+      context: ./chats-server
+      dockerfile: Dockerfile
+    container_name: chat-api-8
+    ports:
+      - "4008:4040"
+    volumes:
+      - ./chats-server:/app/chats-server
+    environment:
+      - PORT=4040
+    depends_on:
+      - mongo-chats
+      - redis-1
+      - redis-2
+      - redis-3
+      - redis-4
+      - redis-5
+      - redis-6
+      - presence-service
+    networks:
+      - chats
+
+  presence-service:
+    build:
+      context: ./presence-service
+      dockerfile: Dockerfile
+    container_name: presence-service
+    ports:
+      - "4001:4001"  # HTTP API
+      - "5001:5001"  # WebSocket
+    volumes:
+      - ./presence-service:/app/presence-service
+    depends_on:
+      - mongo-chats
+      - redis-1
+      - redis-2
+      - redis-3
+      - redis-4
+      - redis-5
+      - redis-6
+    networks:
+      - chats
+
+  # artillery:
+  #   image: artilleryio/artillery
+  #   container_name: artillery
+  #   platform: linux/amd64  # Specify the platform
+  #   command: ["run", "../artillery-tests/artillery-websocket.yml"]
+  #   volumes:
+  #     - ./tests:/artillery-tests
+  #   depends_on:
+  #     - chat-api-1
+  #     - chat-api-2
+  #     - chat-api-3
+  #     - presence-service
+
+  # Nginx Load Balancer
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"  # Expose port 80 for HTTP traffic
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro  # Mount your custom Nginx config
+    depends_on:
+      - haproxy
+    networks:
+      - chats
+
+  haproxy:
+    image: haproxy:alpine
+    container_name: haproxy
+    ports:
+      - "8400:8400"  # HAProxy stats dashboard (optional)
+      - "9000:9000"  # Load-balancer port for WebSocket
+    volumes:
+      - ./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg
+    depends_on:
+      - chat-api-1
+      - chat-api-2
+      - chat-api-3
+      - chat-api-4
+      - chat-api-5
+      - chat-api-6
+      - chat-api-7
+      - chat-api-8
+    networks:
+      - chats
+
+networks:
+  chats:
+    driver: bridge
+
+volumes:
+  mongo-data:
+  redis_data_1:
+  redis_data_2:
+  redis_data_3:
+  redis_data_4:
+  redis_data_5:
+  redis_data_6:
