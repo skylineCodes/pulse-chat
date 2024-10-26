@@ -61,9 +61,9 @@ docker-compose up --build -d
 This command builds the services defined in your docker-compose.yml file and runs them in detached mode.
 
 ## Running the Client
-In a separate terminal, navigate to the chats-client folder and start the client by running:
+In a separate terminal, navigate to the chat-client folder and start the client by running:
 ```
-cd chats-client
+cd chat-client
 npm install
 npm run dev
 ```
