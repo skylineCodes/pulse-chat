@@ -8,7 +8,7 @@ import { Server } from 'socket.io';
 import { createServer } from 'http';
 import { io as socketIoClient } from 'socket.io-client';
 import { createAdapter } from "@socket.io/redis-adapter"; 
-import { fetchAllUsers, fetchUser, getUserStatus, insertManyUsers, markUserOffline, markUserOnline } from './controller/PresenceController';
+import { deleteAllUsers, fetchAllUsers, fetchUser, getUserStatus, insertManyUsers, markUserOffline, markUserOnline } from './controller/PresenceController';
 
 const app = express();
 app.use(express.json());
@@ -39,6 +39,14 @@ export const redisCluster = new Cluster(
   {
     lazyConnect: true,
     dnsLookup: (address, callback) => callback(null, address),
+    natMap: {
+      "redis-1:6379": { host: "redis-1", port: 6379 },
+      "redis-2:6379": { host: "redis-2", port: 6379 },
+      "redis-3:6379": { host: "redis-3", port: 6379 },
+      "redis-4:6379": { host: "redis-4", port: 6379 },
+      "redis-5:6379": { host: "redis-5", port: 6379 },
+      "redis-6:6379": { host: "redis-6", port: 6379 },
+    },
     redisOptions: {
       tls: undefined,
     },
@@ -79,12 +87,13 @@ subClient.on('message', (channel, message) => {
 
   if (channel === 'user_presence') {
     if (event.status === 'online') {
+      console.log(`Received status update for ${event?.username} as ${event?.status} at ${new Date()}`)
       markUserOnline(event);
-      userOnline(event?.username);
     } else if (event.status === 'offline') {
+      console.log(`Received status update for ${event?.username} as ${event?.status} at ${new Date()}`)
       // Mark user as offline
       markUserOffline(event);
-      userOnline(event?.username);
+      // userOnline(event?.username);
     }
   }
 });
@@ -104,17 +113,11 @@ const ioChatServer = socketIoClient('http://nginx', {
 });
 
 ioChatServer.on('connect', () => {
-  console.log('Connected to Chat server');
+  console.log('Connected to Chat serverss');
 });
 
-// Emit an event when a user goes online
-const userOnline = async (username: string) => {
-  const statusData = await getUserStatus(username);
-
-  ioChatServer.emit('user_status', { data: statusData });
-};
-
 // Use the Redis adapter
+// configures Socket.IO to use Redis Pub/Sub as its message broker
 io.adapter(createAdapter(redisCluster, subClient));
 
 io.on("connection", async (socket) => {
@@ -127,7 +130,7 @@ io.on("connection", async (socket) => {
 
 // Initialize WebSocket on port 5001 (separate from HTTP API)
 server.listen(5001, () => {
-  console.log("Presence WebSocket server listening on port 5001");
+  console.log("Presence WebSocket server listening onnn port 5001");
 });
 
 // API endpoint to fetch user status
@@ -141,13 +144,31 @@ app.get("/status/:username", async (req, res) => {
 });
 
 // API endpoint to fetch all users
+app.get("/user/:username", async (req, res) => {
+  try {
+    console.log('params', req.params?.username);
+    const username = req.params.username;
+
+    const user = await fetchUser(username);
+
+    console.log('user_res', user);
+
+    res.status(200).json({
+      user
+    });
+  } catch (error) {
+    console.log('Error fetching user data:', error);
+  }
+});  
+
+// API endpoint to fetch all users
 app.get("/users", async (req, res) => {
   const users = await fetchAllUsers();
 
   res.status(200).json({
     users
   });
-});
+});  
 
 app.post("/create_users", async (req, res) => {
   const { users } = req?.body;
@@ -158,7 +179,15 @@ app.post("/create_users", async (req, res) => {
     message: 'Users created successfully!',
     data: result,
   })
-})
+});
+
+app.delete("/delete_users", async (req, res) => {
+  await deleteAllUsers();
+
+  res.status(201).json({
+    message: 'Users deleted successfully!',
+  })
+});
 
 // API endpoint to create a room
 app.post("/create_room", async (req, res) => {
@@ -228,5 +257,5 @@ app.post("/create_room", async (req, res) => {
 // Initialize server
 const PORT = process.env.PORT || 4001;
 app.listen(PORT, () => {
-  console.log(`Presence service running on port ${PORT}`);
+  console.log(`Presence service running onnn port ${PORT}`);
 });

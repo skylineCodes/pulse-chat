@@ -1,15 +1,65 @@
 version: '3'
 
 services:
-  mongo-chats:
-    container_name: mongo-chats
+  # mongo-chats:
+  #   container_name: mongo-chats
+  #   image: mongo:5
+  #   ports:
+  #     - "27017:27017"
+  #   volumes:
+  #     - mongo-data:/data/db
+  #   networks:
+  #     - chats
+
+  # --- MONGODB REPLICA SET START ---
+  mongo1:
+    container_name: mongo1
     image: mongo:5
+    restart: always
+    # Important: Enable the replica set feature and set the name to rs0
+    command: ["--replSet", "rs0", "--bind_ip_all"]
     ports:
-      - "27017:27017"
+      - "27017:27017" # Primary node exposed for convenience
     volumes:
-      - mongo-data:/data/db
+      - mongo1-data:/data/db
+    deploy:
+      resources:
+        limits:
+          cpus: "3.0"
+          memory: 3G
     networks:
       - chats
+
+  mongo2:
+    container_name: mongo2
+    image: mongo:5
+    restart: always
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+    volumes:
+      - mongo2-data:/data/db
+    deploy:
+      resources:
+        limits:
+          cpus: "3.0"
+          memory: 3G
+    networks:
+      - chats
+
+  mongo3:
+    container_name: mongo3
+    image: mongo:5
+    restart: always
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+    volumes:
+      - mongo3-data:/data/db
+    deploy:
+      resources:
+        limits:
+          cpus: "3.0"
+          memory: 3G
+    networks:
+      - chats
+  # --- MONGODB REPLICA SET END ---
 
   redis-1:
     image: redis:alpine
@@ -95,14 +145,18 @@ services:
       dockerfile: Dockerfile
     container_name: chat-api-1
     ports:
-      - "4000:4040"
+      - "4000:4039"
       - "4041:4041"
     volumes:
       - ./chats-server:/app/chats-server
+      - /app/chats-server/node_modules
     environment:
-      - PORT=4040
+      - PORT=4039
+      - SOCKET_PORT=4041
     depends_on:
-      - mongo-chats
+      - mongo1
+      - mongo2
+      - mongo3
       - redis-1
       - redis-2
       - redis-3
@@ -110,6 +164,15 @@ services:
       - redis-5
       - redis-6
       - presence-service
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
     networks:
       - chats
   
@@ -119,13 +182,18 @@ services:
       dockerfile: Dockerfile
     container_name: chat-api-2
     ports:
-      - "4002:4040"
+      - "4002:4042"
+      - "4102:4142"
     volumes:
       - ./chats-server:/app/chats-server
+      - /app/chats-server/node_modules
     environment:
-      - PORT=4040
+      - PORT=4042
+      - SOCKET_PORT=4142
     depends_on:
-      - mongo-chats
+      - mongo1
+      - mongo2
+      - mongo3
       - redis-1
       - redis-2
       - redis-3
@@ -133,6 +201,15 @@ services:
       - redis-5
       - redis-6
       - presence-service
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
     networks:
       - chats
   
@@ -142,13 +219,18 @@ services:
       dockerfile: Dockerfile
     container_name: chat-api-3
     ports:
-      - "4003:4040"
+      - "4003:4043"
+      - "4103:4143"
     volumes:
       - ./chats-server:/app/chats-server
+      - /app/chats-server/node_modules
     environment:
-      - PORT=4040
+      - PORT=4043
+      - SOCKET_PORT=4143
     depends_on:
-      - mongo-chats
+      - mongo1
+      - mongo2
+      - mongo3
       - redis-1
       - redis-2
       - redis-3
@@ -156,6 +238,15 @@ services:
       - redis-5
       - redis-6
       - presence-service
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
     networks:
       - chats
   
@@ -165,13 +256,18 @@ services:
       dockerfile: Dockerfile
     container_name: chat-api-4
     ports:
-      - "4004:4040"
+      - "4004:4044"
+      - "4104:4144"
     volumes:
       - ./chats-server:/app/chats-server
+      - /app/chats-server/node_modules
     environment:
-      - PORT=4040
+      - PORT=4044
+      - SOCKET_PORT=4144
     depends_on:
-      - mongo-chats
+      - mongo1
+      - mongo2
+      - mongo3
       - redis-1
       - redis-2
       - redis-3
@@ -179,6 +275,15 @@ services:
       - redis-5
       - redis-6
       - presence-service
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
     networks:
       - chats
 
@@ -188,13 +293,18 @@ services:
       dockerfile: Dockerfile
     container_name: chat-api-5
     ports:
-      - "4005:4040"
+      - "4005:4045"
+      - "4105:4145"
     volumes:
       - ./chats-server:/app/chats-server
+      - /app/chats-server/node_modules
     environment:
-      - PORT=4040
+      - PORT=4045
+      - SOCKET_PORT=4145
     depends_on:
-      - mongo-chats
+      - mongo1
+      - mongo2
+      - mongo3
       - redis-1
       - redis-2
       - redis-3
@@ -202,6 +312,15 @@ services:
       - redis-5
       - redis-6
       - presence-service
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
     networks:
       - chats
 
@@ -211,13 +330,18 @@ services:
       dockerfile: Dockerfile
     container_name: chat-api-6
     ports:
-      - "4006:4040"
+      - "4006:4046"
+      - "4106:4146"
     volumes:
       - ./chats-server:/app/chats-server
+      - /app/chats-server/node_modules
     environment:
-      - PORT=4040
+      - PORT=4046
+      - SOCKET_PORT=4146
     depends_on:
-      - mongo-chats
+      - mongo1
+      - mongo2
+      - mongo3
       - redis-1
       - redis-2
       - redis-3
@@ -225,6 +349,15 @@ services:
       - redis-5
       - redis-6
       - presence-service
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
     networks:
       - chats
 
@@ -234,13 +367,18 @@ services:
       dockerfile: Dockerfile
     container_name: chat-api-7
     ports:
-      - "4007:4040"
+      - "4007:4047"
+      - "4107:4147"
     volumes:
       - ./chats-server:/app/chats-server
+      - /app/chats-server/node_modules
     environment:
-      - PORT=4040
+      - PORT=4047
+      - SOCKET_PORT=4147
     depends_on:
-      - mongo-chats
+      - mongo1
+      - mongo2
+      - mongo3
       - redis-1
       - redis-2
       - redis-3
@@ -248,6 +386,15 @@ services:
       - redis-5
       - redis-6
       - presence-service
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
     networks:
       - chats
 
@@ -257,13 +404,18 @@ services:
       dockerfile: Dockerfile
     container_name: chat-api-8
     ports:
-      - "4008:4040"
+      - "4008:4048"
+      - "4108:4148"
     volumes:
       - ./chats-server:/app/chats-server
+      - /app/chats-server/node_modules
     environment:
-      - PORT=4040
+      - PORT=4048
+      - SOCKET_PORT=4148
     depends_on:
-      - mongo-chats
+      - mongo1
+      - mongo2
+      - mongo3
       - redis-1
       - redis-2
       - redis-3
@@ -271,6 +423,42 @@ services:
       - redis-5
       - redis-6
       - presence-service
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+    networks:
+      - chats
+
+  presence-worker:
+    build:
+      context: ./chats-server
+      dockerfile: Dockerfile
+    container_name: presence-worker
+    environment:
+      - PRESENCE_SERVICE_URL=http://presence-service:4001
+    depends_on:
+      - redis-1
+      - redis-2
+      - redis-3
+      - redis-4
+      - redis-5
+      - redis-6
+      - presence-service
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
     networks:
       - chats
 
@@ -279,19 +467,33 @@ services:
       context: ./presence-service
       dockerfile: Dockerfile
     container_name: presence-service
+    # command: npm run start
     ports:
       - "4001:4001"  # HTTP API
       - "5001:5001"  # WebSocket
     volumes:
+      # - ./presence-service:/app/presence-service
       - ./presence-service:/app/presence-service
+      - /app/presence-service/node_modules
     depends_on:
-      - mongo-chats
+      - mongo1
+      - mongo2
+      - mongo3
       - redis-1
       - redis-2
       - redis-3
       - redis-4
       - redis-5
       - redis-6
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
     networks:
       - chats
 
@@ -311,24 +513,34 @@ services:
   # Nginx Load Balancer
   nginx:
     image: nginx:latest
+    container_name: nginx
+    restart: always
     ports:
       - "80:80"  # Expose port 80 for HTTP traffic
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro  # Mount your custom Nginx config
     depends_on:
       - haproxy
+    deploy:
+      resources:
+        limits:
+          # Allocating 5.0 cores to manage extreme connection volume
+          cpus: '5.0'
+          memory: 5GiB # Ensure memory limit is retained
     networks:
       - chats
 
   haproxy:
     image: haproxy:alpine
     container_name: haproxy
+    restart: always
     ports:
       - "8400:8400"  # HAProxy stats dashboard (optional)
       - "9000:9000"  # Load-balancer port for WebSocket
     volumes:
       - ./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg
     depends_on:
+      # - nginx
       - chat-api-1
       - chat-api-2
       - chat-api-3
@@ -337,6 +549,12 @@ services:
       - chat-api-6
       - chat-api-7
       - chat-api-8
+    deploy:
+      resources:
+        limits:
+          # Allocating 5.0 cores to manage extreme connection volume
+          cpus: '5.0'
+          memory: 5GiB # Ensure memory limit is retained
     networks:
       - chats
 
@@ -345,7 +563,10 @@ networks:
     driver: bridge
 
 volumes:
-  mongo-data:
+  # mongo-data:
+  mongo1-data:
+  mongo2-data:
+  mongo3-data:
   redis_data_1:
   redis_data_2:
   redis_data_3:

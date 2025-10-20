@@ -9,10 +9,10 @@ import UserCard from '@/components/UserCard';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 // Socket.IO connection
-const socket = io('http://localhost:5001', {
-    path: '/socket.io',
-    transports: ['websocket'],
-  });
+const socket = io('http://localhost', {
+  path: '/socket.io',
+  transports: ['websocket'],
+});
 
 const UserList = () => {
   const router = useRouter();
@@ -30,10 +30,12 @@ const UserList = () => {
 
     if (data.status === 200) {
         return router.push(
-            `http://localhost:3000/chats?username=${username}&recipient=${recipient}&room_id=${data?.data?.room_id}`
+            `/chats?username=${username}&recipient=${recipient}&room_id=${data?.data?.room_id}`
         )
     }
   }
+
+  console.log('users', users);
 
   const fetchUsers = async (page: any) => {
     try {

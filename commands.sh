@@ -1,0 +1,1 @@
+# seq 1 10000 | awk '{print "user" $1}' > usernames.csv

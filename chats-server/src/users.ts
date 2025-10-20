@@ -1,3 +1,6 @@
+import axios from "axios";
+import { redisCluster } from "./app";
+
 export const users = [
   {
     username: 'user6474',
@@ -71,6 +74,33 @@ export const users = [
   },
 ]
 
-export const findUsername = (username: string | any) => {
-  return users?.find((item) => item?.username === username);
+// export const fetchUser = async (username: any) => {
+//   try {
+//     const response = await axios.get(`http://presence-service:4001/user/${username}`);
+//     console.log('User data:', response.data);
+//     return response.data?.user;
+//   } catch (error) {
+//     console.error('Error fetching user:', error.message);
+//   }
+// }
+
+export const fetchUser = async (username: string) => {
+  const cacheKey = `user_profile:${username}`;
+  const cached = await redisCluster.get(cacheKey);
+  
+  if (cached) return JSON.parse(cached);
+
+  try {
+    const response = await axios.get(`http://presence-service:4001/user/${username}`);
+    const user = response.data?.user;
+
+    if (user) {
+      await redisCluster.set(cacheKey, JSON.stringify(user), "EX", 3600); // cache for 1 hour
+    }
+
+    return user;
+  } catch (error) {
+    console.error("Error fetching user:", error.message);
+    return null;
+  }
 };

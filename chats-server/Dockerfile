@@ -1,5 +1,5 @@
 # Use an official Node.js runtime as a base image
-FROM node:18-alpine
+FROM node:20-bullseye
 
 # Set the working directory inside the container
 WORKDIR /app/chats-server
@@ -17,12 +17,13 @@ RUN npm install
 COPY . .
 
 # Expose the necessary port
-EXPOSE 4040
+# EXPOSE 4040
 
-# Start the Node.js chat server
-# CMD ["npm", "run", "start"]
 
 RUN npm run build
 
 # Start the app using PM2
-CMD ["pm2-runtime", "start", "ecosystem.config.js"]
+# CMD ["pm2-runtime", "start", "ecosystem.config.js"]
+CMD ["node", "--trace_gc", "--trace_gc_verbose", "build/app.js"]
+# Start the Node.js chat server
+# CMD ["npm", "run", "start"]

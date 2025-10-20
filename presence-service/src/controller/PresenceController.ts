@@ -1,6 +1,7 @@
 import { Types } from "mongoose";
 import { redisCluster } from "../app";
 import { User } from "../schema/userSchema";
+import { queuePresenceUpdate } from "../db_presence_writer";
 
 interface IUser {
   first_name: string,
@@ -25,79 +26,85 @@ export const insertManyUsers = async (documents: Omit<any, '_id'>[]): Promise<an
 }
 
 // Mark a user as online
+// export const markUserOnline = async (userPayload: IUser) => {
+//   const now = new Date();
+
+//   // Check if the user exists in MongoDB
+//   let user = await User.findOne({ username: userPayload?.username });
+
+//   if (user) {
+//     // Update the user's status if found
+//     await User.updateOne(
+//       { username: userPayload?.username },
+//       { 
+//         isOnline: true, 
+//         lastSeen: now,
+//       }
+//     );
+//   }
+
+//   await redisCluster.hset('user_status', userPayload?.username, JSON.stringify({ username: userPayload?.username, online: true, lastSeen: Date.now() }));
+  
+//   // Set the user's status in Redis with a TTL of 60 seconds
+//   // await redisCluster.set(`user_status:${userPayload?.username}`, "online", "EX", 60); 
+// };
+
+// Mark a user as online (This is called on connect or heartbeat)
 export const markUserOnline = async (userPayload: IUser) => {
   const now = new Date();
 
-  // Check if the user exists in MongoDB
-  let user = await User.findOne({ username: userPayload?.username });
+  // 1. **DEBOUNCED WRITE TO MONGODB:**
+  // This call updates the internal queue and schedules a single write in 10s.
+  queuePresenceUpdate(userPayload.username, { 
+    isOnline: true, 
+    lastSeen: now,
+  });
 
-  if (user) {
-    // Update the user's status if found
-    await User.updateOne(
-      { username: userPayload?.username },
-      { 
-        isOnline: true, 
-        lastSeen: now, 
-        // first_name: userPayload?.first_name, 
-        // last_name: userPayload?.last_name, 
-        // avatar: userPayload?.avatar 
-      }
-    );
-  } else {
-    // Create a new user record if it doesn't exist
-    user = new User({
-      username: userPayload?.username,
-      first_name: userPayload?.first_name,
-      last_name: userPayload?.last_name,
-      avatar: userPayload?.avatar,
-      isOnline: true,
-      lastSeen: now
-    });
-    await user.save();
-  }
-
+  // 2. **INSTANT WRITE TO REDIS (Real-Time Source of Truth):**
+  // Redis is fast, so this can and should be done instantly for real-time status.
   await redisCluster.hset('user_status', userPayload?.username, JSON.stringify({ username: userPayload?.username, online: true, lastSeen: Date.now() }));
-  
-  // Set the user's status in Redis with a TTL of 60 seconds
-  // await redisCluster.set(`user_status:${userPayload?.username}`, "online", "EX", 60); 
 };
 
 // Mark a user as offline
+// export const markUserOffline = async (userPayload: IUser) => {
+//   const now = new Date();
+  
+//   // Check if the user exists in MongoDB
+//   let user = await User.findOne({ username: userPayload?.username });
+  
+//   if (user) {
+//     // Update the user's status if found
+//     await User.updateOne(
+//       { username: userPayload?.username },
+//       { 
+//         isOnline: false, 
+//         lastSeen: now, 
+//         // first_name: userPayload?.first_name, 
+//         // last_name: userPayload?.last_name, 
+//         // avatar: userPayload?.avatar 
+//       }
+//     );
+//   }
+  
+//   await redisCluster.hset('user_status', userPayload?.username, JSON.stringify({ username: userPayload?.username, online: false, lastSeen: Date.now() }));
+
+//   // Set the user's status in Redis with a TTL of 5 minutes (300 seconds)
+//   // await redisCluster.set(`user_status:${userPayload?.username}`, "offline", "EX", 300); 
+// };
+
+// Mark a user as offline (This is called on disconnect)
 export const markUserOffline = async (userPayload: IUser) => {
   const now = new Date();
   
-  // Check if the user exists in MongoDB
-  let user = await User.findOne({ username: userPayload?.username });
-  
-  if (user) {
-    // Update the user's status if found
-    await User.updateOne(
-      { username: userPayload?.username },
-      { 
-        isOnline: false, 
-        lastSeen: now, 
-        // first_name: userPayload?.first_name, 
-        // last_name: userPayload?.last_name, 
-        // avatar: userPayload?.avatar 
-      }
-    );
-  } else {
-    // Create a new user record if it doesn't exist
-    user = new User({
-      username: userPayload?.username,
-      first_name: userPayload?.first_name,
-      last_name: userPayload?.last_name,
-      avatar: userPayload?.avatar,
-      isOnline: false,
-      lastSeen: now
-    });
-    await user.save();
-  }
-  
-  await redisCluster.hset('user_status', userPayload?.username, JSON.stringify({ username: userPayload?.username, online: false, lastSeen: Date.now() }));
+  // 1. **DEBOUNCED WRITE TO MONGODB:**
+  // This ensures the final OFFLINE status is saved eventually.
+  queuePresenceUpdate(userPayload.username, { 
+    isOnline: false, 
+    lastSeen: now, 
+  });
 
-  // Set the user's status in Redis with a TTL of 5 minutes (300 seconds)
-  // await redisCluster.set(`user_status:${userPayload?.username}`, "offline", "EX", 300); 
+  // 2. **INSTANT WRITE TO REDIS (Real-Time Source of Truth):**
+  await redisCluster.hset('user_status', userPayload?.username, JSON.stringify({ username: userPayload?.username, online: false, lastSeen: Date.now() }));
 };
 
 // Check user status
@@ -129,11 +136,19 @@ export const getUserStatus = async (username: string | any) => {
 export const fetchUser = async (username: any) => {
   const user = await User.findOne({ username });
 
+  console.log('user_db', user);
+
   return user;
 }
 
 export const fetchAllUsers = async () => {
   const users = await User.find();
+
+  return users;
+}
+
+export const deleteAllUsers = async () => {
+  const users = await User.deleteMany();
 
   return users;
 }

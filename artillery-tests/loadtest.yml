@@ -1,0 +1,91 @@
+config:
+  target: "http://localhost"
+  socketio:
+    transports: ["websocket"]
+    # query: {}
+    timeout: 30000
+  engines:
+    socketio: {}
+
+    
+  payload:
+    - path: "./usernames.csv"
+      fields:
+        - username
+  processor: "./processors.js"
+
+
+  phases:
+    # Phase 1: Ramp up the user arrival rate smoothly
+    - name: 'Ramp-up to 2000 Concurrent VUsers'
+      duration: 120 # Ramp up over 2 minutes
+      arrivalRate: 1
+      rampTo: 14 # Ramps to 13.34 VUsers/sec (2000 users / ~150 sec session length)
+    
+    # Phase 2: Sustain the calculated arrival rate for 10 minutes (600 seconds)
+    - name: 'Sustained 2000 Concurrent VUsers'
+      duration: 600 # 10 minutes of sustained high load
+      arrivalRate: 14 # Maintains the concurrency level
+
+    # Phase 3: Ramp up to 10,000 Concurrent VUsers
+    # Target Arrival Rate: 10000 VUsers / ~160 sec session length ≈ 63 VUsers/sec
+    # - name: 'Ramp-up to 10000 Concurrent VUsers'
+    #   duration: 180 # Ramp up smoothly over 3 minutes
+    #   arrivalRate: 5
+    #   rampTo: 63 # Ramps up to 63 VUsers/sec
+
+    # # Phase 4: Sustain the calculated arrival rate for 10 minutes
+    # - name: 'Sustained 10000 Concurrent VUsers'
+    #   duration: 600 # 10 minutes of sustained high load
+    #   arrivalRate: 63 # Maintains the concurrency level
+
+scenarios:
+  - name: "Full chat user lifecycle"
+    # beforeScenario: setUsernameQuery
+    engine: socketio
+    flow:
+      - function: "setSocketQuery"
+      # - on: "error"
+      #   then:
+      #     - log: "❌ Socket error occurred"
+      - log: "👤 Connecting userr: {{ username }}"
+      # Ensure username is initialized in context
+      # - set:
+      #     username: "{{ username }}"
+
+      - emit:
+          channel: "join room"
+          data:
+            username: "{{ username }}"
+            recipient: "user_{{ $randomNumber(1,1000) }}"
+            roomId: "room_{{ $randomNumber(1,100) }}"
+          ack: true
+
+      - think: 2
+
+      - emit:
+          channel: "chat message"
+          data:
+            username: "{{ username }}"
+            roomId: "room_{{ $randomNumber(1,100) }}"
+            message: "Hey there! {{ $randomString(8) }}"
+            timestamp: "{{ Date.now() }}"
+          ack: false
+
+      - think: 5
+
+      - loop:
+          - emit:
+              channel: "heartbeat"
+              data:
+                username: "{{ username }}"
+              ack: false
+          - think: 10
+        count: 12
+
+      - think: "{{ $randomNumber(15,30) }}"
+      - emit:
+          channel: "inactive"
+          data:
+            username: "{{ username }}"
+          ack: false

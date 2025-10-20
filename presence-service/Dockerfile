@@ -1,10 +1,15 @@
 # Dockerfile
-FROM node:alpine
+FROM node:20-bullseye
 
 WORKDIR /app/presence-service
 
+# Copy package files first for caching
 COPY package*.json ./
+
 RUN npm install
+
+# Install nodemon globally for hot reload
+RUN npm install -g nodemon
 
 COPY . .
 

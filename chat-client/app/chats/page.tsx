@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useSocket } from "@/hooks/useSocket";
+import axios from "axios";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { FaRocketchat } from "react-icons/fa6";
@@ -13,46 +14,58 @@ export default function ChatUI() {
   const searchParams = useSearchParams();
 
   const roomId = searchParams.get('room_id');
-  const username = searchParams.get('username');
   const recipient = searchParams.get('recipient');
+  const username: any = searchParams.get('username');
+  
+  // console.log('username', username);
 
   const socket = useSocket(username, roomId, recipient);
   const [messages, setMessages] = useState<any[]>([]);
   const [userDetails, setUserDetails] = useState<any>({});
   const [conversations, setConversations] = useState<any[]>([]);
-  const [message, setMessage] = useState('');
 
-  // console.log(userDetails)
+  const [timeAgo, setTimeAgo] = useState('');
+  const [message, setMessage] = useState('');
   
   // Ref for the chat container to enable auto-scroll
   const chatContainerRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
     if (socket) {
+      socket.emit('join room', { username, recipient, roomId });
+
       // Listen for incoming conversations lists
       socket.on('conversations', (data) => {
-        console.log('Every ten seconds...');
+        console.log('Every ten seconds...', data);
         if (data?.username !== username) {
           setConversations(data?.conversations);
         }
       });
-      
-      // Listen for incoming user details
-      socket.on('user_details', (msg) => {
-        if (msg?.username === username) {
-          console.log(msg)
-          setUserDetails(msg);
-        }
-      });
+
+      const fetchUserDetails = async () => {
+        const response = await axios.get(`http://localhost:4001/user/${username}`);
+
+        setUserDetails(response.data?.user)
+      }
+
+      fetchUserDetails();
       
       // Listen for incoming messages
       socket.on('chat message', (msg) => {
-        setMessages(msg?.messages);
-      });
-
-      // Handle ping (heartbeat) from the server
-      socket.on('ping', (data) => {
-        console.log('Heartbeat from server at ' + new Date(data.timestamp).toLocaleTimeString());
+        console.log('chat message', msg);
+        if (msg?.messages[0]?.roomId === roomId) {
+          // Append incoming messages to state (not replace)
+          setMessages((prev) => {
+            if (msg?.messages) {
+              // if server sent multiple messages (on join), spread them
+              return [...prev, ...msg.messages];
+            } else {
+              // single message from another user
+              return [...prev, msg];
+            }
+          });
+          setMessages(msg?.messages);
+        }
       });
       
       // Clean up the event listener when the component unmounts
@@ -61,6 +74,26 @@ export default function ChatUI() {
       };
     }
   }, [socket]);
+
+  useEffect(() => {
+    if (!userDetails?.online && userDetails?.lastSeen) {
+      const calculateTimeAgo = () => {
+        const lastSeenDate: any = new Date(userDetails.lastSeen);
+        const now: any = new Date();
+        const diffInMinutes = Math.floor((now - lastSeenDate) / 60000);
+        
+        setTimeAgo(`${diffInMinutes} mins ago`);
+      };
+
+      // Calculate once initially
+      calculateTimeAgo();
+
+      // Update every minute to keep it accurate
+      const intervalId = setInterval(calculateTimeAgo, 60000);
+
+      return () => clearInterval(intervalId);
+    }
+  }, [userDetails?.online, userDetails?.lastSeen]);
 
   // Auto-scroll to the bottom when new messages arrive
   useEffect(() => {
@@ -77,8 +110,14 @@ export default function ChatUI() {
         username,
         timestamp: new Date()
       }
+
+      // 1️⃣ Immediately display message in sender's UI
+      setMessages((prev) => [...prev, messagePayload]);
       
+      // 2️⃣ Emit message to server
       socket.emit('chat message', messagePayload); // Emit the message to the server
+      
+      // 3️⃣ Reset input
       setMessage('');
     }
   };
@@ -100,9 +139,15 @@ export default function ChatUI() {
           <Input placeholder="Search" className="w-1/2 bg-gray-700 text-white px-4 py-2 rounded-lg" />
         </div>
 
+        {/* Conversations... */}
         <div className="mt-4 space-y-4">
           {/* List of Chats */}
-          {conversations?.map((item: any) => (
+          {conversations?.sort((a, b) => {
+            // Sort so online users appear first
+            if (a.online && !b.online) return -1;
+            if (!a.online && b.online) return 1;
+            return 0; // Preserve order if both are online/offline
+          })?.map((item: any) => (
             <>
             {item.username !== username && (
               <div className="flex items-center space-x-3 p-2 bg-gray-700 rounded-lg">
@@ -161,7 +206,7 @@ export default function ChatUI() {
             ></span>
           </div>
           <h2 className="text-white text-xl font-semibold">{`${userDetails?.first_name} ${userDetails?.last_name}`}</h2>
-          <div className="text-gray-400 text-sm">{`${userDetails?.online === true ? 'online' : 'offline'}`}</div>
+          <div className="text-gray-400 text-sm">{`${userDetails?.online === true ? 'online' : `was online ${timeAgo}`}`}</div>
          </div>
         </div>
 
@@ -175,7 +220,7 @@ export default function ChatUI() {
               {/* Left-side user (not current user) */}
               {msg.username !== username && (
                 <div className="flex flex-col items-start gap-3 relative">
-                  <div className="relative bg-[#007AFF] p-4 rounded-lg max-w-xs">
+                  <div className="relative bg-[#007AFF] p-2 rounded-lg max-w-xs">
                     <div className="absolute left-[-8px] top-4 w-0 h-0 border-t-[8px] border-t-transparent border-b-[8px] border-b-transparent border-r-[8px] border-r-[#007AFF]"></div>                    
                     <p className="text-white mt-2">{msg?.message}</p>
                   </div>
@@ -198,7 +243,7 @@ export default function ChatUI() {
               {/* Right-side user (current user) */}
               {msg.username === username && (
                 <div className="flex flex-col items-end gap-3">
-                  <div className="relative bg-[#25D366] p-4 rounded-lg max-w-xs">
+                  <div className="relative bg-[#25D366] p-2 rounded-lg max-w-xs">
                     <div className="absolute right-[-8px] top-4 w-0 h-0 border-t-[8px] border-t-transparent border-b-[8px] border-b-transparent border-l-[8px] border-l-[#25D366]"></div>
                     <p className="text-white mt-2">{msg?.message}</p>
                   </div>
@@ -207,9 +252,6 @@ export default function ChatUI() {
                     <AvatarFallback>{msg?.first_name?.substring(0, 2)}</AvatarFallback>
                   </Avatar>
                   <div className="">
-                    {/* <h4 className="text-white font-semibold text-xs">
-                      {`${msg?.first_name} ${msg?.last_name}`}
-                    </h4> */}
                     <p className="text-white text-xs">
                       {format(new Date(msg?.timestamp), 'p, MMM d, yyyy')}
                     </p>
@@ -234,36 +276,6 @@ export default function ChatUI() {
           <Button className="bg-blue-500 text-white px-4 py-2 rounded-lg" onClick={handleSendMessage}>Send</Button>
         </div>
       </div>
-
-      {/* Chat Details Pane */}
-      {/* <div className="w-[20vw] bg-gray-900 p-4">
-        <h2 className="text-white text-lg font-semibold">Chat Details</h2>
-
-        <div className="mt-4">
-          <h3 className="text-gray-400 text-sm">Photos and Videos</h3>
-          <div className="space-y-2 mt-2">
-            <img src="/images/pizza.jpg" alt="Pizza" className="rounded-lg w-full h-auto" />
-            <img src="/images/video-thumbnail.jpg" alt="Video" className="rounded-lg w-full h-auto" />
-          </div>
-        </div>
-
-        <div className="mt-4">
-          <h3 className="text-gray-400 text-sm">Shared Files</h3>
-          <div className="space-y-2 mt-2">
-            <div className="text-gray-400 text-sm">Contract for printing services</div>
-            <div className="text-gray-400 text-sm">Changes in department schedule</div>
-          </div>
-        </div>
-
-        <div className="mt-4">
-          <h3 className="text-gray-400 text-sm">Shared Links</h3>
-          <div className="space-y-2 mt-2">
-            <a href="#" className="text-blue-400">Economic Policy</a>
-            <a href="#" className="text-blue-400">Microsoft</a>
-            <a href="#" className="text-blue-400">Government Portal</a>
-          </div>
-        </div>
-      </div> */}
     </div>
   );
 }
