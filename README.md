@@ -6,7 +6,7 @@ The objective was to build a chat application capable of managing substantial co
 
 The chat system aims to handle massive WebSocket connections, simulating up to 10,000 concurrent users.
 
-Here is the link to the full case study of architecture decisions and design - https://www.onakoyakorede.cc/case-studies/pulse-chat
+Here is the link to the full case study of architecture design and decisions - https://www.onakoyakorede.cc/case-studies/pulse-chat
 
 ## Table of Contents
 - [Features](#features)
