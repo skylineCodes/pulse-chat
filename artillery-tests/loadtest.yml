@@ -45,13 +45,7 @@ scenarios:
     engine: socketio
     flow:
       - function: "setSocketQuery"
-      # - on: "error"
-      #   then:
-      #     - log: "❌ Socket error occurred"
       - log: "👤 Connecting userr: {{ username }}"
-      # Ensure username is initialized in context
-      # - set:
-      #     username: "{{ username }}"
 
       - emit:
           channel: "join room"

@@ -4,7 +4,9 @@ This repository contains a chat application built with a microservices architect
 
 The objective was to build a chat application capable of managing substantial concurrent user connections, supporting rapid message broadcasts, user presence status, and resilient WebSocket connections under a variety of network conditions.
 
-The chat system aims to handle massive WebSocket connections, simulating up to 100,000 concurrent users.
+The chat system aims to handle massive WebSocket connections, simulating up to 10,000 concurrent users.
+
+Here is the link to the full case study of architecture decisions and design - https://www.onakoyakorede.cc/case-studies/pulse-chat
 
 ## Table of Contents
 - [Features](#features)
